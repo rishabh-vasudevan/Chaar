@@ -1,5 +1,5 @@
 
-[logo](./resources/sideways-logo.png)
+![logo](./resources/sideways-logo.png)
 
 # CHAAR AI
 
