@@ -5,5 +5,5 @@
 
 CHAAR AI is a rust based library that acts as a compiler and an inference service.
 
-[!NOTE]
-  It is currently a work in progress
+> [!NOTE]
+> It is currently a work in progress
