@@ -37,6 +37,18 @@ impl GraphGroup {
     }
 
     fn add_graph(&mut self, edges: Vec<Vec<bool>>) {
+        println!("edges length: {}, nodes: {}", edges.len(), self.nodes.len());
+        for edge in &edges {
+            println!("values: {}", edge.len());
+        }
+        assert!(
+            !edges.is_empty()
+                && edges.len() <= self.nodes.len()
+                && edges
+                    .iter()
+                    .all(|x| x.len() == edges.len() && x.len() <= self.nodes.len()),
+            "Graph inputs mismatch"
+        );
         self.graphs.push(Graph::new(edges));
     }
 }
@@ -55,18 +67,18 @@ mod tests {
         //  1  2  3  4
 
         let mut nodes: Vec<Node> = Vec::new();
+        let number_of_nodes = 10;
 
-        for index in 0..10 {
+        for index in 0..=number_of_nodes {
             nodes.push(Node::Operator(OperatorNode::new(format!("{}", index))));
         }
 
-        let len_nodes = nodes.len();
         graph_group.add_nodes(nodes);
 
         // Right now there is only one graph so it is easy to make the edges
         // but later on, the maker will have to keep the state of arena in mind while making the
         // graph
-        let mut edges: Vec<Vec<bool>> = vec![vec![false; len_nodes + 1]; len_nodes + 1]; // +1 to
+        let mut edges: Vec<Vec<bool>> = vec![vec![false; number_of_nodes + 1]; number_of_nodes + 1]; // +1 to
         // make it 1 index
         edges[1][5] = true;
         edges[2][5] = true;
