@@ -8,7 +8,7 @@ pub struct Tensor {
 }
 
 impl Tensor {
-    fn new(dtype_data: Dtype, shape: ShapeTracker) -> Self {
+    pub fn new(dtype_data: Dtype, shape: ShapeTracker) -> Self {
         match &dtype_data {
             Dtype::Float32(data) => {
                 assert!(shape.check_valid_shape(data));

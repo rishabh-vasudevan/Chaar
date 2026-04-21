@@ -3,18 +3,21 @@ use crate::graph::nodes::Node;
 #[derive(Debug)]
 pub struct Graph {
     edges: Vec<Vec<bool>>,
+    children: Vec<Graph>,
 }
 
 impl Graph {
     fn new(edges: Vec<Vec<bool>>) -> Self {
-        Graph { edges }
+        Graph {
+            edges,
+            children: Vec::new(),
+        }
     }
 }
 
 // NOTE: We are doing things in an arena, that is why it is okay not have refrences of edge nodes
 // The problem in the general way is that if a node is dropped and it still had an edge that can
-// run into undefined behaviour.
-// TODO: Keep the above note in mind, and if we want to start dropping nodes, in that case we will
+// run into undefined behaviour.And if we want to start dropping nodes, in that case we will
 // have to keep references, so that we don't drop nodes that are being used in other graphs. For
 // now all deletions should happen at the same time, or rather just let the program complete and
 // never delete the nodes.
@@ -56,7 +59,10 @@ impl GraphGroup {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::dtype::*;
     use crate::graph::nodes::*;
+    use crate::shape_tracker::*;
+    use crate::tensor::*;
 
     #[test]
     fn test_graph_working() {
@@ -70,7 +76,7 @@ mod tests {
         let number_of_nodes = 10;
 
         for index in 0..=number_of_nodes {
-            nodes.push(Node::Operator(OperatorNode::new(format!("{}", index))));
+            nodes.push(Node::Operator(OperatorNode::new(Operator::Dummy)));
         }
 
         graph_group.add_nodes(nodes);
@@ -95,5 +101,47 @@ mod tests {
 
         graph_group.add_graph(edges);
         println!("{:?}", graph_group);
+    }
+
+    #[test]
+    fn add_two_tensors() {
+        let mut graph_group = GraphGroup::new();
+        //                C
+        //               ADD
+        //  A [1, 2, 3, 4]  B [5, 6, 7, 8]
+
+        let a = Tensor::new(
+            Dtype::Float32(vec![1.0, 2.0, 3.0, 4.0]),
+            ShapeTracker::new(vec![4], vec![1]),
+        );
+
+        let b = Tensor::new(
+            Dtype::Float32(vec![5.0, 6.0, 7.0, 8.0]),
+            ShapeTracker::new(vec![4], vec![1]),
+        );
+
+        // 0
+        let a_node = Node::Tensor(TensorNode::new(a));
+        //1
+        let b_node = Node::Tensor(TensorNode::new(b));
+
+        let add_a_b = Operator::Add;
+
+        //2
+        let add_node = Node::Operator(OperatorNode::new(add_a_b));
+        //3
+        let c_buffer = Node::Buffer;
+
+        graph_group.add_nodes(vec![a_node, b_node, add_node, c_buffer]);
+
+        let mut graph = vec![vec![false; 4]; 4];
+
+        graph[0][2] = true;
+        graph[1][2] = true;
+        graph[2][3] = true;
+
+        graph_group.add_graph(graph);
+
+        println!("{:#?}", graph_group.graphs[0]);
     }
 }
