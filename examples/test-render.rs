@@ -90,6 +90,35 @@ impl Default for GraphVisualizer {
     }
 }
 
+impl eframe::App for GraphVisualizer {
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        let ctx = ui.ctx().clone();
+
+        left_panel(ui, self);
+
+        let size_left = ui.available_size();
+
+        let scene = Scene::new()
+            .max_inner_size(Vec2::new(size_left.x * 2.0, size_left.y * 2.0))
+            .zoom_range(0.1..=f32::INFINITY);
+
+        let mut scene_rect = self.scene_rect;
+        scene.show(ui, &mut scene_rect, |ui| {
+            let full_rect = ui.available_rect_before_wrap();
+            ui.allocate_rect(full_rect, Sense::hover());
+
+            let node_size = 35.0;
+
+            let edge_stroke = Stroke::new(1.8, Color32::from_gray(180));
+            draw_edges(self, ui, node_size, edge_stroke);
+
+            draw_nodes(self, &ctx, ui, node_size);
+        });
+
+        self.scene_rect = scene_rect;
+    }
+}
+
 fn draw_edge(painter: &egui::Painter, from: Pos2, to: Pos2, radius: f32, stroke: Stroke) {
     let dir = (to - from).normalized();
     if !dir.is_finite() {
@@ -132,7 +161,11 @@ fn draw_node(app: &mut GraphVisualizer, ctx: &Context, ui: &mut egui::Ui, i: usi
     let response = ui.interact(rect, id, Sense::click_and_drag());
 
     if response.clicked() {
-        app.selected = Some(i);
+        if let Some(i) = app.selected {
+            app.selected = None;
+        } else {
+            app.selected = Some(i);
+        }
     }
     if response.double_clicked() {
         ctx.memory_mut(|m| m.data.insert_temp(id, true));
@@ -202,35 +235,6 @@ fn left_panel(ui: &mut egui::Ui, app: &mut GraphVisualizer) {
                 }
             }
         });
-}
-
-impl eframe::App for GraphVisualizer {
-    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
-        let ctx = ui.ctx().clone();
-
-        left_panel(ui, self);
-
-        let size_left = ui.available_size();
-
-        let scene = Scene::new()
-            .max_inner_size(Vec2::new(size_left.x * 2.0, size_left.y * 2.0))
-            .zoom_range(0.1..=f32::INFINITY);
-
-        let mut scene_rect = self.scene_rect;
-        scene.show(ui, &mut scene_rect, |ui| {
-            let full_rect = ui.available_rect_before_wrap();
-            ui.allocate_rect(full_rect, Sense::hover());
-
-            let node_size = 35.0;
-
-            let edge_stroke = Stroke::new(1.8, Color32::from_gray(180));
-            draw_edges(self, ui, node_size, edge_stroke);
-
-            draw_nodes(self, &ctx, ui, node_size);
-        });
-
-        self.scene_rect = scene_rect;
-    }
 }
 
 fn main() -> eframe::Result<()> {
