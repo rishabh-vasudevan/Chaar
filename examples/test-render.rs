@@ -1,4 +1,7 @@
-use eframe::egui::{self, Context};
+use eframe::{
+    egui::{self, Context},
+    epaint::CubicBezierShape,
+};
 use egui::{Align2, Color32, FontId, Pos2, Rect, Scene, Sense, Shape, Stroke, Vec2};
 
 struct Node {
@@ -102,6 +105,8 @@ impl eframe::App for GraphVisualizer {
             .max_inner_size(Vec2::new(size_left.x * 2.0, size_left.y * 2.0))
             .zoom_range(0.1..=f32::INFINITY);
 
+        // FIXME: take copy here and then update it back later after the show block does not seem
+        // like a clean way to do this
         let mut scene_rect = self.scene_rect;
         scene.show(ui, &mut scene_rect, |ui| {
             let full_rect = ui.available_rect_before_wrap();
@@ -126,7 +131,17 @@ fn draw_edge(painter: &egui::Painter, from: Pos2, to: Pos2, radius: f32, stroke:
     } // same point → skip
     let start = from + dir * radius;
     let end = to - dir * radius;
-    painter.line_segment([start, end], stroke);
+
+    let dx = (to.x - from.x) * 0.5;
+    let ctrl1 = start + Vec2::new(dx.max(30.0), 0.0);
+    let ctrl2 = end - Vec2::new(dx.max(30.0), 0.0);
+    // painter.line_segment([start, end], stroke);
+    painter.add(CubicBezierShape::from_points_stroke(
+        [start, ctrl1, ctrl2, end],
+        false,
+        Color32::TRANSPARENT,
+        stroke,
+    ));
 
     // Arrowhead: two short segments at ±25° from the tip
     let head_len = 10.0;

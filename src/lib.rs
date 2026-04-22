@@ -2,6 +2,7 @@ mod dtype;
 mod graph;
 mod shape_tracker;
 mod tensor;
+mod viz;
 
 // #[cfg(test)]
 // mod tests {

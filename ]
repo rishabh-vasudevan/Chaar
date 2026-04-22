@@ -1,10 +1,8 @@
-use std::collections::{HashMap, VecDeque};
-
-use crate::graph::nodes::{BufferNode, Node, Operator};
+use crate::graph::nodes::{Node, Operator};
 use crate::graph::nodes::{OperatorNode, TensorNode};
 use crate::tensor::Tensor;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Graph {
     edges: Vec<(usize, usize)>, // (Source, Destination)
     children: Vec<Graph>,
@@ -31,11 +29,6 @@ pub struct GraphGroup {
     graphs: Vec<Graph>,
 }
 
-pub struct TopoSorted {
-    layer: usize,
-    node_id: usize,
-}
-
 impl GraphGroup {
     fn new() -> Self {
         GraphGroup {
@@ -44,19 +37,11 @@ impl GraphGroup {
         }
     }
 
-    pub fn get_nodes(&self) -> &Vec<Node> {
-        self.nodes.as_ref()
-    }
-
-    pub fn get_edges(&self, graph_index: usize) -> &Vec<(usize, usize)> {
-        self.graphs[graph_index].edges.as_ref()
-    }
-
     fn num_of_nodes(&self) -> usize {
         self.nodes.len()
     }
 
-    fn get_graph_latest_index(&self) -> usize {
+    fn graph_latest_index(&self) -> usize {
         self.graphs.len() - 1
     }
 
@@ -75,13 +60,13 @@ impl GraphGroup {
         }
         // TODO: Check that graph does not have cycle
         self.graphs.push(Graph::new(edges));
-        self.get_graph_latest_index()
+        self.graph_latest_index()
     }
 
-    fn add_tensor(&mut self, tensor: Tensor, label: String) -> usize {
-        self.nodes
-            .push(Node::Tensor(TensorNode::new(tensor, label)));
+    fn add_tensor(&mut self, tensor: Tensor) -> usize {
+        self.nodes.push(Node::Tensor(TensorNode::new(tensor)));
         self.get_node_latest_index()
+        self.nodes.len() - 1
     }
 
     fn add_operator(
@@ -89,86 +74,26 @@ impl GraphGroup {
         graph_index: usize,
         operator: Operator,
         mut operands: Vec<usize>,
-        buffer_label: String,
     ) -> usize {
         assert!(operands.len() == operator.value());
         //TODO: remove this check for same elements later to have a + a also as valid
         operands.sort();
         operands.dedup();
 
-        self.nodes.push(Node::Operator(OperatorNode::new(
-            operator,
-            operator.label(),
-        )));
+        self.nodes.push(Node::Operator(OperatorNode::new(operator)));
         let operator_index = self.nodes.len() - 1;
         for operand in operands {
             self.graphs[graph_index]
                 .edges
                 .push((operand, operator_index));
         }
-        self.nodes.push(Node::Buffer(BufferNode::new(buffer_label)));
-        let buffer_index = self.get_node_latest_index();
+        self.nodes.push(Node::Buffer);
+        let buffer_index = self.nodes.len() - 1;
         self.graphs[graph_index]
             .edges
             .push((operator_index, buffer_index));
 
         buffer_index
-    }
-
-    pub fn topo_sort(&self, graph_index: usize) -> Vec<TopoSorted> {
-        let graph = &self.graphs[graph_index];
-        let mut incoming_edges_count: HashMap<usize, usize> = HashMap::new();
-        let mut outgoing_edges: HashMap<usize, Vec<usize>> = HashMap::new();
-
-        for (src, dest) in graph.edges.iter() {
-            if src == dest {
-                continue;
-            }
-            incoming_edges_count.entry(*src).or_insert(0);
-            *incoming_edges_count.entry(*dest).or_insert(0) += 1;
-            outgoing_edges.entry(*src).or_default().push(*dest);
-        }
-
-        let mut no_incoming_edges: VecDeque<usize> = VecDeque::default();
-
-        for (src, src_incoming) in incoming_edges_count.iter() {
-            if *src_incoming == 0 {
-                no_incoming_edges.push_back(*src);
-            }
-        }
-
-        let mut sorted_nodes: Vec<usize> = vec![0; self.num_of_nodes()];
-
-        let mut layers: Vec<usize> = Vec::new();
-
-        while let Some(src) = no_incoming_edges.pop_back() {
-            sorted_nodes.push(src);
-
-            incoming_edges_count.remove(&src);
-
-            for neighbour in outgoing_edges.get(&src).unwrap_or(&vec![]) {
-                if let Some(count) = incoming_edges_count.get_mut(neighbour) {
-                    *count -= 1;
-                    if *count == 0 {
-                        layers[*neighbour] = layers[*neighbour].max(layers[src] + 1);
-                        incoming_edges_count.remove(neighbour);
-                        no_incoming_edges.push_back(*neighbour);
-                    }
-                }
-            }
-        }
-
-        if !incoming_edges_count.is_empty() {
-            panic!("Graph is not a DAG");
-        }
-
-        sorted_nodes
-            .iter()
-            .map(|node_id| TopoSorted {
-                layer: layers[*node_id],
-                node_id: *node_id,
-            })
-            .collect()
     }
 }
 
@@ -200,14 +125,12 @@ mod tests {
             ShapeTracker::new(vec![4], vec![1]),
         );
 
-        let a = graph_group.add_tensor(a, stringify!(a).to_string());
-        let b = graph_group.add_tensor(b, stringify!(b).to_string());
+        let a = graph_group.add_tensor(a);
+        let b = graph_group.add_tensor(b);
 
-        let c =
-            graph_group.add_operator(graph, Operator::Add, vec![a, b], stringify!(c).to_string());
+        let c = graph_group.add_operator(graph, Operator::Add, vec![a, b]);
 
-        let d =
-            graph_group.add_operator(graph, Operator::Add, vec![c, a], stringify!(d).to_string());
+        let d = graph_group.add_operator(graph, Operator::Add, vec![c, a]);
 
         println!("Nodes: {:?}", graph_group);
         println!("Edges: {:?}", graph_group.graphs[graph].edges);
