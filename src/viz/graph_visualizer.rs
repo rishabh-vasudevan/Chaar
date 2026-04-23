@@ -1,6 +1,7 @@
 use crate::{
-    graph::graph::GraphGroup,
+    graph::graph_group::GraphGroup,
     viz::{
+        layout,
         nodes::{VizNode, VizNodeKind},
         ui_elements::*,
     },
@@ -51,40 +52,39 @@ impl Default for GraphVisualizer {
     }
 }
 
-pub const HORIZONTAL_SPACING: f32 = 250.0;
-pub const MIN_VERTICAL_SPACING: f32 = 150.0;
-pub const PADDING: f32 = 100.0;
+impl GraphVisualizer {
+    pub fn new(graph: GraphGroup, graph_index: usize) -> Self {
+        let topo_sorted = graph.topo_sort(graph_index);
+        let edges = graph.get_edges(graph_index);
 
-// impl GraphVisualizer {
-//     fn new(graph: GraphGroup, graph_index: usize) -> Self {
-//         let topo_sorted = graph.topo_sort(graph_index);
-//         GraphVisualizer {
-//             nodes: graph
-//                 .get_nodes()
-//                 .clone()
-//                 .iter()
-//                 .map(|node| {
-//                     VizNode::new(
-//                         node.pos,
-//                         VizNodeKind::get_node_kind_from_node(&node),
-//                         node.get_label(),
-//                         "Random description".to_string(),
-//                     )
-//                 })
-//                 .collect(),
-//             selected: None,
-//             edges: graph.get_edges(graph_index).clone(),
-//             scene_rect: Rect::ZERO,
-//         }
-//     }
-//
-//     fn compute_positions(
-//         topo_sorted: &Vec<TopoSorted>,
-//         edges: &Vec<(usize, usize), num_nodes: usize>,
-//     ) -> Vec<Pos2> {
-//     }
-// }
-//
+        // Calculate layout
+        let mut positions = layout::compute_positions(&topo_sorted);
+        layout::center_positions(&mut positions);
+        let scene_rect = layout::compute_scene_rect(&positions);
+
+        let nodes: Vec<VizNode> = graph
+            .get_nodes()
+            .iter()
+            .enumerate()
+            .map(|(i, node)| {
+                VizNode::new(
+                    positions[i],
+                    VizNodeKind::get_node_kind_from_node(node),
+                    node.get_label(),
+                    "Description".to_string(),
+                )
+            })
+            .collect();
+
+        Self {
+            nodes,
+            edges: edges.to_vec(),
+            selected: None,
+            scene_rect,
+        }
+    }
+}
+
 impl eframe::App for GraphVisualizer {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         let ctx = ui.ctx().clone();

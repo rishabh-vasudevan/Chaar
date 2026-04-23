@@ -1,12 +1,19 @@
 use std::collections::{HashMap, VecDeque};
+use std::fmt::Debug;
 
-use crate::graph::nodes::{BufferNode, Node, Operator};
-use crate::graph::nodes::{OperatorNode, TensorNode};
+use crate::graph::{
+    compile::ChaarIRS,
+    nodes::{BufferNode, Node, Operator, OperatorNode, TensorNode},
+};
 use crate::tensor::Tensor;
+
+type NodeIdx = usize;
+type Edge = (NodeIdx, NodeIdx); // (Source, Destination)
+const DEFAULT_GRAPH: usize = 0;
 
 #[derive(Debug, Clone)]
 pub struct Graph {
-    edges: Vec<(usize, usize)>, // (Source, Destination)
+    edges: Vec<Edge>,
     children: Vec<Graph>,
 }
 
@@ -25,25 +32,19 @@ impl Graph {
 // have to keep references, so that we don't drop nodes that are being used in other graphs. For
 // now all deletions should happen at the same time, or rather just let the program complete and
 // never delete the nodes.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct GraphGroup {
     nodes: Vec<Node>,
     graphs: Vec<Graph>,
 }
 
 pub struct TopoSorted {
-    layer: usize,
-    node_id: usize,
+    pub layer: usize,
+    pub node_id: usize,
+    pub parents: Vec<usize>,
 }
 
 impl GraphGroup {
-    fn new() -> Self {
-        GraphGroup {
-            nodes: Vec::new(),
-            graphs: Vec::new(),
-        }
-    }
-
     pub fn get_nodes(&self) -> &Vec<Node> {
         self.nodes.as_ref()
     }
@@ -52,19 +53,19 @@ impl GraphGroup {
         self.graphs[graph_index].edges.as_ref()
     }
 
-    fn num_of_nodes(&self) -> usize {
+    pub fn num_of_nodes(&self) -> usize {
         self.nodes.len()
     }
 
-    fn get_graph_latest_index(&self) -> usize {
+    pub fn get_graph_latest_index(&self) -> usize {
         self.graphs.len() - 1
     }
 
-    fn get_node_latest_index(&self) -> usize {
+    pub fn get_node_latest_index(&self) -> usize {
         self.nodes.len() - 1
     }
 
-    fn add_graph(&mut self, edges: Vec<(usize, usize)>) -> usize {
+    pub fn add_graph(&mut self, edges: Vec<(usize, usize)>) -> usize {
         if !edges.is_empty() {
             assert!(
                 edges
@@ -78,13 +79,13 @@ impl GraphGroup {
         self.get_graph_latest_index()
     }
 
-    fn add_tensor(&mut self, tensor: Tensor, label: String) -> usize {
+    pub fn add_tensor(&mut self, tensor: Tensor, label: String) -> usize {
         self.nodes
             .push(Node::Tensor(TensorNode::new(tensor, label)));
         self.get_node_latest_index()
     }
 
-    fn add_operator(
+    pub fn add_operator(
         &mut self,
         graph_index: usize,
         operator: Operator,
@@ -137,9 +138,10 @@ impl GraphGroup {
             }
         }
 
-        let mut sorted_nodes: Vec<usize> = vec![0; self.num_of_nodes()];
+        let mut sorted_nodes: Vec<usize> = Vec::new();
 
-        let mut layers: Vec<usize> = Vec::new();
+        let mut layers: Vec<usize> = vec![0; self.num_of_nodes()];
+        let mut parents: Vec<Vec<usize>> = vec![vec![]; self.num_of_nodes()];
 
         while let Some(src) = no_incoming_edges.pop_back() {
             sorted_nodes.push(src);
@@ -148,6 +150,7 @@ impl GraphGroup {
 
             for neighbour in outgoing_edges.get(&src).unwrap_or(&vec![]) {
                 if let Some(count) = incoming_edges_count.get_mut(neighbour) {
+                    parents[*neighbour].push(src);
                     *count -= 1;
                     if *count == 0 {
                         layers[*neighbour] = layers[*neighbour].max(layers[src] + 1);
@@ -167,8 +170,13 @@ impl GraphGroup {
             .map(|node_id| TopoSorted {
                 layer: layers[*node_id],
                 node_id: *node_id,
+                parents: parents[*node_id].clone(),
             })
             .collect()
+    }
+
+    pub fn compile(&mut self, graph_index: usize) {
+        ChaarIRS::compile(self, DEFAULT_GRAPH);
     }
 }
 
@@ -182,7 +190,7 @@ mod tests {
 
     #[test]
     fn add_two_tensors() {
-        let mut graph_group = GraphGroup::new();
+        let mut graph_group = GraphGroup::default();
 
         //                C
         //               ADD

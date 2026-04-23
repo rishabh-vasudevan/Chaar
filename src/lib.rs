@@ -1,8 +1,9 @@
-mod dtype;
-mod graph;
-mod shape_tracker;
-mod tensor;
-mod viz;
+pub mod dtype;
+pub mod graph;
+pub mod shape_tracker;
+pub mod tensor;
+pub mod utils;
+pub mod viz;
 
 // #[cfg(test)]
 // mod tests {

@@ -1,2 +1,3 @@
-pub mod graph;
+pub mod compile;
+pub mod graph_group;
 pub mod nodes;
