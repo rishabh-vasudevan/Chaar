@@ -17,6 +17,14 @@ impl Node {
             Self::Output => "Output".to_string(),
         }
     }
+
+    // TODO: consider custor errors instead of strings to improve the error hadling
+    pub fn get_operator(&self) -> Result<GraphOperator, String> {
+        match self {
+            Node::Operator(operator_node) => Ok(operator_node.op),
+            _ => Err("Node is not an operator node".to_string()),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -44,40 +52,40 @@ impl TensorNode {
 
 // TODO: is this clone needed?
 #[derive(Debug, Clone, Copy)]
-pub enum Operator {
+pub enum GraphOperator {
     Add,
     MatMul,
     ElementWiseMul,
     Dummy,
 }
 
-impl Operator {
+impl GraphOperator {
     pub fn value(&self) -> usize {
         match self {
-            Operator::Add => 2,
-            Operator::MatMul => 2,
-            Operator::ElementWiseMul => 2,
-            Operator::Dummy => 0,
+            GraphOperator::Add => 2,
+            GraphOperator::MatMul => 2,
+            GraphOperator::ElementWiseMul => 2,
+            GraphOperator::Dummy => 0,
         }
     }
     pub fn label(&self) -> String {
         match self {
-            Operator::Add => "Add".to_string(),
-            Operator::MatMul => "MatMul".to_string(),
-            Operator::ElementWiseMul => "ElementWiseMul".to_string(),
-            Operator::Dummy => "Dummy".to_string(),
+            GraphOperator::Add => "Add".to_string(),
+            GraphOperator::MatMul => "MatMul".to_string(),
+            GraphOperator::ElementWiseMul => "ElementWiseMul".to_string(),
+            GraphOperator::Dummy => "Dummy".to_string(),
         }
     }
 }
 
 #[derive(Debug)]
 pub struct OperatorNode {
-    op: Operator,
-    label: String,
+    pub op: GraphOperator,
+    pub label: String,
 }
 
 impl OperatorNode {
-    pub fn new(op: Operator, label: String) -> Self {
+    pub fn new(op: GraphOperator, label: String) -> Self {
         OperatorNode { op, label }
     }
 }

@@ -101,9 +101,6 @@ impl eframe::App for GraphVisualizer {
         // like a clean way to do this
         let mut scene_rect = self.scene_rect;
         scene.show(ui, &mut scene_rect, |ui| {
-            let full_rect = ui.available_rect_before_wrap();
-            ui.allocate_rect(full_rect, Sense::hover());
-
             let node_size = 35.0;
 
             let edge_stroke = Stroke::new(1.8, Color32::from_gray(180));

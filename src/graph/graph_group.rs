@@ -3,12 +3,12 @@ use std::fmt::Debug;
 
 use crate::graph::{
     compile::ChaarIRS,
-    nodes::{BufferNode, Node, Operator, OperatorNode, TensorNode},
+    nodes::{BufferNode, GraphOperator, Node, OperatorNode, TensorNode},
 };
 use crate::tensor::Tensor;
 
-type NodeIdx = usize;
-type Edge = (NodeIdx, NodeIdx); // (Source, Destination)
+pub type NodeIdx = usize;
+pub type Edge = (NodeIdx, NodeIdx); // (Source, Destination)
 const DEFAULT_GRAPH: usize = 0;
 
 #[derive(Debug, Clone)]
@@ -45,6 +45,10 @@ pub struct TopoSorted {
 }
 
 impl GraphGroup {
+    pub fn get_node(&self, idx: NodeIdx) -> &Node {
+        self.nodes.get(idx).unwrap()
+    }
+
     pub fn get_nodes(&self) -> &Vec<Node> {
         self.nodes.as_ref()
     }
@@ -88,7 +92,7 @@ impl GraphGroup {
     pub fn add_operator(
         &mut self,
         graph_index: usize,
-        operator: Operator,
+        operator: GraphOperator,
         mut operands: Vec<usize>,
         buffer_label: String,
     ) -> usize {
@@ -176,7 +180,8 @@ impl GraphGroup {
     }
 
     pub fn compile(&mut self, graph_index: usize) {
-        ChaarIRS::compile(self, DEFAULT_GRAPH);
+        let compiled_data = ChaarIRS::compile(self, DEFAULT_GRAPH);
+        println!("{:?}", compiled_data);
     }
 }
 
@@ -211,11 +216,19 @@ mod tests {
         let a = graph_group.add_tensor(a, stringify!(a).to_string());
         let b = graph_group.add_tensor(b, stringify!(b).to_string());
 
-        let c =
-            graph_group.add_operator(graph, Operator::Add, vec![a, b], stringify!(c).to_string());
+        let c = graph_group.add_operator(
+            graph,
+            GraphOperator::Add,
+            vec![a, b],
+            stringify!(c).to_string(),
+        );
 
-        let d =
-            graph_group.add_operator(graph, Operator::Add, vec![c, a], stringify!(d).to_string());
+        let d = graph_group.add_operator(
+            graph,
+            GraphOperator::Add,
+            vec![c, a],
+            stringify!(d).to_string(),
+        );
 
         println!("Nodes: {:?}", graph_group);
         println!("Edges: {:?}", graph_group.graphs[graph].edges);
