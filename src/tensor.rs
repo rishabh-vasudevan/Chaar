@@ -18,6 +18,11 @@ impl Tensor {
     }
 }
 
+pub struct Buffer {
+    dtype_data: Dtype,
+    shape: ShapeTracker,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

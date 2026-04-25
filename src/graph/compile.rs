@@ -52,7 +52,6 @@ impl ChaarIRS {
     fn level_one(graph_group: &GraphGroup, graph_index: usize) -> ChaarIROne {
         let sorted_graph = graph_group.topo_sort(graph_index);
 
-        // NOTE: This will only have operator nodes, is there a better way to do this?
         let operator_nodes = sorted_graph
             .iter()
             .filter_map(|node| match graph_group.get_node(node.node_id) {
