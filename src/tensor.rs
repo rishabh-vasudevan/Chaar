@@ -23,6 +23,10 @@ pub struct Buffer {
     shape: ShapeTracker,
 }
 
+// impl Buffer {
+//     pub fn new(dtype)
+// }
+
 #[cfg(test)]
 mod tests {
     use super::*;
