@@ -4,21 +4,22 @@ pub struct Float32 {}
 pub struct Float16 {}
 pub struct Float8 {}
 
+// #[derive(Debug)]
+// pub enum Dtype {
+//     Float32(Vec<f32>),
+// }
+
 #[derive(Debug)]
 pub enum Dtype {
-    Float32(Vec<f32>),
+    Float32,
+    Float16,
 }
 
-pub enum DtypeDuplicate {
-    Float32New,
-    Float16New,
-}
-
-impl DtypeDuplicate {
+impl Dtype {
     fn data_size(&self) -> usize {
         match self {
-            DtypeDuplicate::Float32New => 4usize,
-            DtypeDuplicate::Float16New => 2usize,
+            Dtype::Float32 => 4usize,
+            Dtype::Float16 => 2usize,
         }
     }
 
@@ -28,11 +29,13 @@ impl DtypeDuplicate {
     }
     fn load_array_unsafe(ptr: *const c_void, size: usize, len: usize) {
         let bytes_ptr = ptr.cast::<u8>();
+
         for idx in 0..len {
             let number;
             unsafe {
                 let number_bytes = *(bytes_ptr.add(idx * size).cast::<[u8; 4]>());
                 number = f32::from_le_bytes(number_bytes);
+                // number = f64::from_le_bytes(number_bytes);
             }
             println!("{}", number);
         }
@@ -40,11 +43,11 @@ impl DtypeDuplicate {
 }
 
 pub struct DtypeTest {
-    dtype: DtypeDuplicate,
+    dtype: Dtype,
 }
 
 impl DtypeTest {
-    fn new(dtype: DtypeDuplicate) -> Self {
+    fn new(dtype: Dtype) -> Self {
         DtypeTest { dtype }
     }
     fn load_data(&self, ptr: *const c_void, len: usize) {
@@ -54,7 +57,7 @@ impl DtypeTest {
 
 #[cfg(test)]
 mod dtype_tests {
-    use crate::dtype::{DtypeDuplicate, DtypeTest};
+    use crate::dtype::{Dtype, DtypeTest};
     use std::os::raw::c_void;
 
     #[test]
@@ -65,19 +68,10 @@ mod dtype_tests {
         let mut_const_ptr = ptr.cast::<*const c_void>();
         let const_ptr = mut_const_ptr as *const c_void;
 
-        let dtypeTest = DtypeTest::new(DtypeDuplicate::Float32New);
+        let dtypeTest = DtypeTest::new(Dtype::Float32);
 
         unsafe {
             dtypeTest.load_data(const_ptr, len);
         }
-
-        // unsafe {
-        //     for i in 0..len {
-        //         // ptr.add(i).write(*ptr.add(i) + i as f64)
-        //         const_ptr.map_addr(|addr| );
-        //     }
-        //     let rebuilt = Vec::from_raw_parts(ptr, len, cap);
-        //     println!("{:?}", rebuilt);
-        // }
     }
 }

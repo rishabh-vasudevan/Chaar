@@ -3,7 +3,7 @@ unsafe extern "C" {
 }
 
 fn main() {
-    let msg = "Hello from rust from a syscall!!";
+    let msg = "Hello from rust from a syscall!!\n";
     unsafe {
         write(1, msg.as_ptr(), msg.len());
     }

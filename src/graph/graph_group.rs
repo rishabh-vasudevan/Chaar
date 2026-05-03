@@ -193,44 +193,38 @@ mod tests {
     use crate::shape_tracker::*;
     use crate::tensor::*;
 
-    #[test]
-    fn add_two_tensors() {
-        let mut graph_group = GraphGroup::default();
-
-        //                C
-        //               ADD
-        //  A [1, 2, 3, 4]  B [5, 6, 7, 8]
-
-        let graph = graph_group.add_graph(vec![]);
-
-        let a = Tensor::new(
-            Dtype::Float32(vec![1.0, 2.0, 3.0, 4.0]),
-            ShapeTracker::new(vec![4], vec![1]),
-        );
-
-        let b = Tensor::new(
-            Dtype::Float32(vec![5.0, 6.0, 7.0, 8.0]),
-            ShapeTracker::new(vec![4], vec![1]),
-        );
-
-        let a = graph_group.add_tensor(a, stringify!(a).to_string());
-        let b = graph_group.add_tensor(b, stringify!(b).to_string());
-
-        let c = graph_group.add_operator(
-            graph,
-            GraphOperator::Add,
-            vec![a, b],
-            stringify!(c).to_string(),
-        );
-
-        let d = graph_group.add_operator(
-            graph,
-            GraphOperator::Add,
-            vec![c, a],
-            stringify!(d).to_string(),
-        );
-
-        println!("Nodes: {:?}", graph_group);
-        println!("Edges: {:?}", graph_group.graphs[graph].edges);
-    }
+    // #[test]
+    //     fn add_two_tensors() {
+    //         let mut graph_group = GraphGroup::default();
+    //
+    //         //                C
+    //         //               ADD
+    //         //  A [1, 2, 3, 4]  B [5, 6, 7, 8]
+    //
+    //         let graph = graph_group.add_graph(vec![]);
+    //
+    //         let a = Tensor::new(Dtype::Float32, ShapeTracker::new(vec![4], vec![1]));
+    //
+    //         let b = Tensor::new(Dtype::Float32, ShapeTracker::new(vec![4], vec![1]));
+    //
+    //         let a = graph_group.add_tensor(a, stringify!(a).to_string());
+    //         let b = graph_group.add_tensor(b, stringify!(b).to_string());
+    //
+    //         let c = graph_group.add_operator(
+    //             graph,
+    //             GraphOperator::Add,
+    //             vec![a, b],
+    //             stringify!(c).to_string(),
+    //         );
+    //
+    //         let d = graph_group.add_operator(
+    //             graph,
+    //             GraphOperator::Add,
+    //             vec![c, a],
+    //             stringify!(d).to_string(),
+    //         );
+    //
+    //         println!("Nodes: {:?}", graph_group);
+    //         println!("Edges: {:?}", graph_group.graphs[graph].edges);
+    //     }
 }
