@@ -91,6 +91,7 @@ mod tensor_tests {
     #[test]
     fn test_new_vector() {
         let buffer: Vec<f32> = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+        let buffer_clone = buffer.clone();
         let (buffer_ptr, len, _size) = buffer.into_raw_parts();
 
         let tensor_buffer = TensorBuffer::Mem(MemBufferData {
@@ -104,7 +105,7 @@ mod tensor_tests {
             ShapeTracker::new(vec![2, 3], vec![3, 1]),
         );
         let returned_list = new_tensor.tolist::<f32>();
-        println!("{:?}", returned_list);
+        assert!(returned_list == buffer_clone);
     }
 
     #[test]
@@ -115,7 +116,7 @@ mod tensor_tests {
 
         buffer_store.add(test_vector_one, Dtype::Float32);
         buffer_store.add(test_vector_two, Dtype::Float32);
-        println!("{:?}", buffer_store);
+        assert!(buffer_store.data_hashmap.len() == 1);
     }
 
     #[test]
@@ -126,6 +127,7 @@ mod tensor_tests {
 
         buffer_store.add(test_vector_one, Dtype::Float32);
         buffer_store.add(test_vector_two, Dtype::Float32);
-        println!("{:?}", buffer_store);
+
+        assert!(buffer_store.data_hashmap.len() == 2);
     }
 }
