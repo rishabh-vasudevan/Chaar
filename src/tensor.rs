@@ -1,5 +1,29 @@
-use crate::dtype::Dtype;
+use std::collections::HashMap;
+use std::hash::{DefaultHasher, Hash, Hasher};
+
+use crate::dtype::{Dtype, DtypeHasher};
 use crate::shape_tracker::ShapeTracker;
+
+type HashType = u64;
+
+#[derive(Debug, Default)]
+struct BufferStore<T> {
+    data_hashmap: HashMap<HashType, Vec<T>>,
+}
+
+impl<T> BufferStore<T> {
+    fn add(&mut self, data: Vec<T>, dtype: Dtype)
+    where
+        T: Clone,
+    {
+        let data_clone = data.clone();
+        let (ptr, len, size) = data.into_raw_parts();
+        let casted_to_opaque = ptr as *const ();
+        let hash = dtype.hash(casted_to_opaque, len, size);
+
+        self.data_hashmap.insert(hash, data_clone);
+    }
+}
 
 #[derive(Debug)]
 struct MemBufferData {
@@ -81,5 +105,27 @@ mod tensor_tests {
         );
         let returned_list = new_tensor.tolist::<f32>();
         println!("{:?}", returned_list);
+    }
+
+    #[test]
+    fn test_buffer_same_hash() {
+        let mut buffer_store = BufferStore::<f32>::default();
+        let test_vector_one = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+        let test_vector_two = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+
+        buffer_store.add(test_vector_one, Dtype::Float32);
+        buffer_store.add(test_vector_two, Dtype::Float32);
+        println!("{:?}", buffer_store);
+    }
+
+    #[test]
+    fn test_buffer_different_hash() {
+        let mut buffer_store = BufferStore::<f32>::default();
+        let test_vector_one = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+        let test_vector_two = vec![1.0, 2.0, 3.0, 4.0, 5.0, 7.0];
+
+        buffer_store.add(test_vector_one, Dtype::Float32);
+        buffer_store.add(test_vector_two, Dtype::Float32);
+        println!("{:?}", buffer_store);
     }
 }

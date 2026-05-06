@@ -1,5 +1,7 @@
 use std::os::raw::c_void;
 
+use crate::utils::hash::hash_f32_vec_to_bits;
+
 pub struct Float32 {}
 pub struct Float16 {}
 pub struct Float8 {}
@@ -8,6 +10,13 @@ pub struct Float8 {}
 // pub enum Dtype {
 //     Float32(Vec<f32>),
 // }
+//
+pub trait DtypeHasher {
+    type DtypeValue;
+
+    fn hash_dtype(dtype: &Self::DtypeValue) -> u64;
+    fn hash_vec_dtype(dtype_vec: &Vec<Self::DtypeValue>) -> u64;
+}
 
 #[derive(Debug)]
 pub enum Dtype {
@@ -38,6 +47,16 @@ impl Dtype {
                 // number = f64::from_le_bytes(number_bytes);
             }
             println!("{}", number);
+        }
+    }
+
+    pub fn hash(&self, data_ptr: *const (), len: usize, size: usize) -> u64 {
+        match self {
+            Dtype::Float32 => {
+                let casted_f32_ptr = data_ptr as *mut f32;
+                unsafe { hash_f32_vec_to_bits(casted_f32_ptr, len, size) }
+            }
+            _ => 1,
         }
     }
 }
