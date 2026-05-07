@@ -1,6 +1,6 @@
 use crate::dtype::Dtype;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ShapeTracker {
     // TODO: remove pub
     pub shape: Vec<usize>,
@@ -19,6 +19,14 @@ impl ShapeTracker {
     pub fn check_valid_shape<T>(&self, values: &Vec<T>) -> bool {
         let expected_values: usize = self.shape.iter().product();
         expected_values == values.len()
+    }
+
+    pub fn is_equal(&self, other: ShapeTracker) -> bool {
+        if self.shape == other.shape && self.stride == other.stride {
+            true
+        } else {
+            false
+        }
     }
 }
 

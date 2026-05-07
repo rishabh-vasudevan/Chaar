@@ -1,4 +1,5 @@
 pub mod dtype;
+pub mod executor;
 pub mod graph;
 pub mod shape_tracker;
 pub mod tensor;

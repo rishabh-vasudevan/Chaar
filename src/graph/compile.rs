@@ -24,6 +24,7 @@ impl KernelOperator {
 pub struct Kernel {
     operator: KernelOperator,
     parents: Vec<NodeIdx>,
+    output: NodeIdx,
 }
 
 #[derive(Debug, Default)]
@@ -41,9 +42,10 @@ pub enum ChaarIRS {
 }
 
 impl ChaarIRS {
-    pub fn search_and_compile(graph_group: &GraphGroup) {
+    pub fn search_compile_and_execute(graph_group: &GraphGroup) {
         todo!()
     }
+
     pub fn compile(graph_group: &GraphGroup, graph_index: usize) -> ChaarIRS {
         let chaar_ir_one = Self::level_one(graph_group, graph_index);
         ChaarIRS::ChaarIROne(chaar_ir_one)
@@ -68,7 +70,7 @@ impl ChaarIRS {
             chaar_ir_one.kernels.push(Kernel {
                 operator: kernel_operator,
                 parents: topo_sorted_node.parents.clone(),
-                // TODO: This needs a child as well
+                output: operator_node.output_buffer,
             });
         }
         chaar_ir_one

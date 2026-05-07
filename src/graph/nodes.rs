@@ -1,10 +1,11 @@
-use crate::tensor::Tensor;
+use crate::{graph::graph_group::NodeIdx, shape_tracker::ShapeTracker, tensor::Tensor};
 
 #[derive(Debug)]
 pub enum Node {
     Tensor(TensorNode),
     Operator(OperatorNode),
-    Buffer(BufferNode),
+    InputBuffer(BufferNode),
+    TransitBuffer(BufferNode),
     Output,
 }
 
@@ -13,7 +14,8 @@ impl Node {
         match self {
             Self::Tensor(node) => node.label.clone(),
             Self::Operator(node) => node.label.clone(),
-            Self::Buffer(node) => node.label.clone(),
+            Self::InputBuffer(node) => node.label.clone(),
+            Self::TransitBuffer(node) => node.label.to_string(),
             Self::Output => "Output".to_string(),
         }
     }
@@ -25,23 +27,33 @@ impl Node {
             _ => Err("Node is not an operator node".to_string()),
         }
     }
+
+    pub fn get_shape(&self) -> Result<ShapeTracker, String> {
+        match self {
+            Node::Tensor(tensor_node) => Ok(tensor_node.tensor.shape.clone()),
+            Node::InputBuffer(buffer_node) => Ok(buffer_node.shape.clone()),
+            Node::TransitBuffer(buffer_node) => Ok(buffer_node.shape.clone()),
+            _ => Err("Node does not have a shape value".to_string()),
+        }
+    }
 }
 
 #[derive(Debug)]
 pub struct BufferNode {
     label: String,
+    shape: ShapeTracker,
 }
 
 impl BufferNode {
-    pub fn new(label: String) -> Self {
-        BufferNode { label }
+    pub fn new(label: String, shape: ShapeTracker) -> Self {
+        BufferNode { label, shape }
     }
 }
 
 #[derive(Debug)]
 pub struct TensorNode {
-    tensor: Tensor,
-    label: String,
+    pub tensor: Tensor,
+    pub label: String,
 }
 
 impl TensorNode {
@@ -82,10 +94,15 @@ impl GraphOperator {
 pub struct OperatorNode {
     pub op: GraphOperator,
     pub label: String,
+    pub output_buffer: NodeIdx,
 }
 
 impl OperatorNode {
-    pub fn new(op: GraphOperator, label: String) -> Self {
-        OperatorNode { op, label }
+    pub fn new(op: GraphOperator, output_buffer: NodeIdx, label: String) -> Self {
+        OperatorNode {
+            op,
+            label,
+            output_buffer,
+        }
     }
 }

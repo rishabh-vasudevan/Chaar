@@ -96,23 +96,45 @@ impl GraphGroup {
         mut operands: Vec<usize>,
         buffer_label: String,
     ) -> usize {
+        matches!(operator, GraphOperator::Add);
         assert!(operands.len() == operator.value());
         //TODO: remove this check for same elements later to have a + a also as valid
         operands.sort();
         operands.dedup();
 
+        assert!(operands.len() == 2);
+
+        let operand_nodes = operands
+            .iter()
+            .map(|operand_id| self.get_node(*operand_id))
+            .collect::<Vec<&Node>>();
+
+        assert!(
+            operand_nodes[0]
+                .get_shape()
+                .unwrap()
+                .is_equal(operand_nodes[1].get_shape().unwrap())
+        );
+
+        // NOTE: inserting buffer node before because we are storing that index in the operator node
+        self.nodes.push(Node::TransitBuffer(BufferNode::new(
+            buffer_label,
+            operand_nodes[0].get_shape().unwrap(),
+        )));
+        let buffer_index = self.get_node_latest_index();
         self.nodes.push(Node::Operator(OperatorNode::new(
             operator,
+            buffer_index,
             operator.label(),
         )));
-        let operator_index = self.nodes.len() - 1;
+
+        let operator_index = self.get_node_latest_index();
         for operand in operands {
             self.graphs[graph_index]
                 .edges
                 .push((operand, operator_index));
         }
-        self.nodes.push(Node::Buffer(BufferNode::new(buffer_label)));
-        let buffer_index = self.get_node_latest_index();
+
         self.graphs[graph_index]
             .edges
             .push((operator_index, buffer_index));
@@ -181,50 +203,59 @@ impl GraphGroup {
 
     pub fn compile(&mut self, graph_index: usize) {
         let compiled_data = ChaarIRS::compile(self, DEFAULT_GRAPH);
-        println!("{:?}", compiled_data);
+        println!("{:#?}", compiled_data);
     }
 }
 
 #[cfg(test)]
-mod tests {
+mod graph_group_tests {
     use super::*;
     use crate::dtype::*;
     use crate::graph::nodes::*;
     use crate::shape_tracker::*;
     use crate::tensor::*;
 
-    // #[test]
-    //     fn add_two_tensors() {
-    //         let mut graph_group = GraphGroup::default();
-    //
-    //         //                C
-    //         //               ADD
-    //         //  A [1, 2, 3, 4]  B [5, 6, 7, 8]
-    //
-    //         let graph = graph_group.add_graph(vec![]);
-    //
-    //         let a = Tensor::new(Dtype::Float32, ShapeTracker::new(vec![4], vec![1]));
-    //
-    //         let b = Tensor::new(Dtype::Float32, ShapeTracker::new(vec![4], vec![1]));
-    //
-    //         let a = graph_group.add_tensor(a, stringify!(a).to_string());
-    //         let b = graph_group.add_tensor(b, stringify!(b).to_string());
-    //
-    //         let c = graph_group.add_operator(
-    //             graph,
-    //             GraphOperator::Add,
-    //             vec![a, b],
-    //             stringify!(c).to_string(),
-    //         );
-    //
-    //         let d = graph_group.add_operator(
-    //             graph,
-    //             GraphOperator::Add,
-    //             vec![c, a],
-    //             stringify!(d).to_string(),
-    //         );
-    //
-    //         println!("Nodes: {:?}", graph_group);
-    //         println!("Edges: {:?}", graph_group.graphs[graph].edges);
-    //     }
+    #[test]
+    fn add_two_tensors() {
+        let mut graph_group = GraphGroup::default();
+
+        //                C
+        //               ADD
+        //  A [1, 2, 3, 4]  B [5, 6, 7, 8]
+
+        let graph = graph_group.add_graph(vec![]);
+        let mut buffer_store = BufferStore::<f32>::default();
+
+        let a = Tensor::new::<f32>(
+            Some((&mut buffer_store, vec![1.0, 2.0, 3.0, 4.0, 6.0])),
+            Dtype::Float32,
+            ShapeTracker::new(vec![4], vec![1]),
+        );
+
+        let b = Tensor::new::<f32>(
+            Some((&mut buffer_store, vec![1.0, 2.0, 3.0, 4.0, 5.0])),
+            Dtype::Float32,
+            ShapeTracker::new(vec![4], vec![1]),
+        );
+
+        let a = graph_group.add_tensor(a, stringify!(a).to_string());
+        let b = graph_group.add_tensor(b, stringify!(b).to_string());
+
+        let c = graph_group.add_operator(
+            graph,
+            GraphOperator::Add,
+            vec![a, b],
+            stringify!(c).to_string(),
+        );
+
+        let d = graph_group.add_operator(
+            graph,
+            GraphOperator::Add,
+            vec![c, a],
+            stringify!(d).to_string(),
+        );
+
+        println!("Nodes: {:?}", graph_group);
+        println!("Edges: {:?}", graph_group.graphs[graph].edges);
+    }
 }

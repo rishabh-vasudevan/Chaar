@@ -74,7 +74,8 @@ impl VizNodeKind {
         match node {
             Node::Tensor(_) => VizNodeKind::Tensor,
             Node::Operator(_) => VizNodeKind::Operator,
-            Node::Buffer(_) => VizNodeKind::Buffer,
+            Node::InputBuffer(_) => VizNodeKind::Buffer,
+            Node::TransitBuffer(_) => VizNodeKind::Buffer,
             Node::Output => VizNodeKind::Output,
         }
     }
