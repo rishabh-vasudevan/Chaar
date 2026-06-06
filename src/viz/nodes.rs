@@ -75,7 +75,7 @@ impl VizNodeKind {
             Node::Tensor(_) => VizNodeKind::Tensor,
             Node::Operator(_) => VizNodeKind::Operator,
             Node::InputBuffer(_) => VizNodeKind::Buffer,
-            Node::TransitBuffer(_) => VizNodeKind::Buffer,
+            Node::IntermittentBuffer(_) => VizNodeKind::Buffer,
             Node::Output => VizNodeKind::Output,
         }
     }

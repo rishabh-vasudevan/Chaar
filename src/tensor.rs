@@ -32,13 +32,13 @@ impl<T> BufferStore<T> {
     }
 }
 
-#[derive(Debug)]
-enum TensorBuffer {
+#[derive(Debug, Clone)]
+pub enum TensorBuffer {
     Mem(HashType),
     File(String), //path
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Tensor {
     pub buffer: Option<TensorBuffer>,
     pub dtype_data: Dtype,
@@ -67,6 +67,16 @@ impl Tensor {
             tensor_buffer_hash = buffer_store.add(data, &dtype_data);
             tensor_buffer = Some(TensorBuffer::Mem(tensor_buffer_hash));
         }
+
+        Tensor {
+            buffer: tensor_buffer,
+            dtype_data,
+            shape,
+        }
+    }
+
+    pub fn empty_new(dtype_data: Dtype, shape: ShapeTracker) -> Self {
+        let mut tensor_buffer: Option<TensorBuffer> = None;
 
         Tensor {
             buffer: tensor_buffer,

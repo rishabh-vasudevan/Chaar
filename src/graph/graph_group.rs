@@ -116,10 +116,13 @@ impl GraphGroup {
                 .is_equal(operand_nodes[1].get_shape().unwrap())
         );
 
+        assert!(operand_nodes[0].get_dtype() == operand_nodes[1].get_dtype());
+
         // NOTE: inserting buffer node before because we are storing that index in the operator node
-        self.nodes.push(Node::TransitBuffer(BufferNode::new(
+        self.nodes.push(Node::IntermittentBuffer(BufferNode::new(
             buffer_label,
             operand_nodes[0].get_shape().unwrap(),
+            operand_nodes[0].get_dtype(),
         )));
         let buffer_index = self.get_node_latest_index();
         self.nodes.push(Node::Operator(OperatorNode::new(
@@ -201,9 +204,8 @@ impl GraphGroup {
             .collect()
     }
 
-    pub fn compile(&mut self, graph_index: usize) {
-        let compiled_data = ChaarIRS::compile(self, DEFAULT_GRAPH);
-        println!("{:#?}", compiled_data);
+    pub fn compile<'a>(&'a mut self, graph_index: usize) -> ChaarIRS {
+        ChaarIRS::compile(self, DEFAULT_GRAPH)
     }
 }
 

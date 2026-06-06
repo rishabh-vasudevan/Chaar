@@ -1,11 +1,13 @@
-use crate::{graph::graph_group::NodeIdx, shape_tracker::ShapeTracker, tensor::Tensor};
+use crate::{
+    dtype::Dtype, graph::graph_group::NodeIdx, shape_tracker::ShapeTracker, tensor::Tensor,
+};
 
 #[derive(Debug)]
 pub enum Node {
     Tensor(TensorNode),
     Operator(OperatorNode),
     InputBuffer(BufferNode),
-    TransitBuffer(BufferNode),
+    IntermittentBuffer(BufferNode),
     Output,
 }
 
@@ -15,7 +17,7 @@ impl Node {
             Self::Tensor(node) => node.label.clone(),
             Self::Operator(node) => node.label.clone(),
             Self::InputBuffer(node) => node.label.clone(),
-            Self::TransitBuffer(node) => node.label.to_string(),
+            Self::IntermittentBuffer(node) => node.label.to_string(),
             Self::Output => "Output".to_string(),
         }
     }
@@ -32,21 +34,49 @@ impl Node {
         match self {
             Node::Tensor(tensor_node) => Ok(tensor_node.tensor.shape.clone()),
             Node::InputBuffer(buffer_node) => Ok(buffer_node.shape.clone()),
-            Node::TransitBuffer(buffer_node) => Ok(buffer_node.shape.clone()),
+            Node::IntermittentBuffer(buffer_node) => Ok(buffer_node.shape.clone()),
             _ => Err("Node does not have a shape value".to_string()),
         }
     }
+
+    pub fn get_dtype(&self) -> Dtype {
+        match self {
+            Node::Tensor(tensor_node) => tensor_node.tensor.dtype_data.clone(),
+            Node::InputBuffer(buffer_node) => buffer_node.dtype.clone(),
+            Node::IntermittentBuffer(buffer_node) => buffer_node.dtype.clone(),
+            _ => panic!("Does not have dtype"),
+        }
+    }
+
+    pub fn get_tensor(&self) -> Result<Tensor, String> {
+        if let Node::Tensor(tensor_val) = &self {
+            return Ok(tensor_val.tensor.clone());
+        }
+        Err("node is not a tensor node".to_string())
+    }
+
+    pub fn get_buffer(&self) -> Result<BufferNode, String> {
+        if let Node::InputBuffer(buffer_node) = &self {
+            return Ok(buffer_node.clone());
+        }
+        Err("node is not a buffer node".to_string())
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BufferNode {
-    label: String,
-    shape: ShapeTracker,
+    pub label: String,
+    pub shape: ShapeTracker,
+    pub dtype: Dtype,
 }
 
 impl BufferNode {
-    pub fn new(label: String, shape: ShapeTracker) -> Self {
-        BufferNode { label, shape }
+    pub fn new(label: String, shape: ShapeTracker, dtype: Dtype) -> Self {
+        BufferNode {
+            label,
+            shape,
+            dtype,
+        }
     }
 }
 

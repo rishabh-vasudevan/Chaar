@@ -1,0 +1,47 @@
+use crate::graph::compile::ChaarIRS;
+use std::mem;
+
+#[derive(Debug)]
+struct AllotedBuffer {
+    buffer_box: Box<[mem::MaybeUninit<u8>]>,
+    size: usize,
+    node_idx: usize,
+}
+
+impl AllotedBuffer {
+    fn new(buffer_box: Box<[mem::MaybeUninit<u8>]>, size: usize, node_idx: usize) -> Self {
+        AllotedBuffer {
+            buffer_box,
+            size,
+            node_idx,
+        }
+    }
+}
+
+pub fn execute(chaar_ir: ChaarIRS) {
+    let chaar_ir_one = if let ChaarIRS::ChaarIROne(chaar_ir_one) = chaar_ir {
+        chaar_ir_one
+    } else {
+        panic!("Execution is not supported for this IR");
+    };
+
+    let alloted_buffers = chaar_ir_one
+        .buffers_to_create
+        .iter()
+        .map(|buffer_to_create| {
+            let box_size =
+                buffer_to_create.shape_tracker.get_size() * buffer_to_create.dtype.get_size();
+            let boxed_value = Box::<[u8]>::new_uninit_slice(box_size);
+            AllotedBuffer::new(boxed_value, box_size, buffer_to_create.buffer_id)
+        })
+        .collect::<Vec<AllotedBuffer>>();
+
+    // Allocate Buffers
+    // Assign Buffers
+    // Start Compute
+    //      Check conditions for operation (This should be done before actually sending compute to
+    //      the device as we want better happy path in the device hot path)
+    //      Perform operation
+    //  Complete
+    //  Output Result
+}
